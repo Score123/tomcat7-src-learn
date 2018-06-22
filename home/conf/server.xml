@@ -1,0 +1,184 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!-- Note:  A "Server" is not itself a "Container", so you may not
+     define subcomponents such as "Valves" at this level.
+     Documentation at /docs/config/server.html
+ -->
+<Server port="8005" shutdown="SHUTDOWN">
+    <!-- 下面6个是监听器组件-->
+    <!-- 当Tomcat启动时，该监听器记录Tomcat、Java和操作系统的信息。该监听器必须是配置的第一个监听器。 -->
+    <Listener className="org.apache.catalina.startup.VersionLoggerListener"/>
+    <!-- Security listener. Documentation at /docs/config/listeners.html
+    <Listener className="org.apache.catalina.security.SecurityListener" />
+    -->
+    <!--Tomcat启动时，检查APR库，如果存在则加载。
+        APR，即Apache Portable Runtime，是Apache可移植运行库，可以实现高可扩展性、高性能，以及与本地服务器技术更好的集成。
+    -->
+    <!--APR library loader. Documentation at /docs/apr.html -->
+    <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on"/>
+    <!-- 在Web应用启动之前初始化Jasper，Jasper是JSP引擎，
+        把JVM不认识的JSP文件解析成java文件，然后编译成class文件供JVM使用。 -->
+    <!--Initialize Jasper prior to webapps are loaded. Documentation at /docs/jasper-howto.html -->
+    <Listener className="org.apache.catalina.core.JasperListener"/>
+
+    <!-- 与类加载器导致的内存泄露有关。 -->
+    <!-- Prevent memory leaks due to use of particular java/javax APIs-->
+    <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener"/>
+
+    <!--通过该监听器，初始化< GlobalNamingResources>标签中定义的全局JNDI资源；
+        如果没有该监听器，任何全局资源都不能使用。-->
+    <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener"/>
+    <!-- 当Web应用因thread-local导致的内存泄露而要停止时，该监听器会触发线程池中线程的更新。
+        当线程执行完任务被收回线程池时，活跃线程会一个一个的更新。
+        只有当Web应用(即Context元素)的renewThreadsWhenStoppingContext属性设置为true时，该监听器才有效。-->
+    <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener"/>
+
+    <!-- Global JNDI resources  全局JNDI资源
+         Documentation at /docs/jndi-resources-howto.html
+    -->
+
+    <!-- GlobalNamingResources元素定义了全局资源，通过配置可以看出，
+        该配置是通过读取$TOMCAT_HOME/ conf/tomcat-users.xml实现的。 -->
+    <GlobalNamingResources>
+        <!-- Editable user database that can also be used by
+             UserDatabaseRealm to authenticate users
+        -->
+        <Resource name="UserDatabase" auth="Container"
+                  type="org.apache.catalina.UserDatabase"
+                  description="User database that can be updated and saved"
+                  factory="org.apache.catalina.users.MemoryUserDatabaseFactory"
+                  pathname="conf/tomcat-users.xml"/>
+    </GlobalNamingResources>
+
+    <!-- A "Service" is a collection of one or more "Connectors" that share
+         a single "Container" Note:  A "Service" is not itself a "Container",
+         so you may not define subcomponents such as "Valves" at this level.
+         Documentation at /docs/config/service.html
+
+         “服务”是共享一个“容器”的一个或多个“连接器”的集合。
+         注意：“服务”本身不是“容器”，因此您可能无法在此级别定义子组件，如“阀门”。
+     -->
+    <Service name="Catalina">
+
+        <!--The connectors can use a shared executor, you can define one or more named thread pools-->
+        <!--
+        <Executor name="tomcatThreadPool" namePrefix="catalina-exec-"
+            maxThreads="150" minSpareThreads="4"/>
+        -->
+
+
+        <!-- A "Connector" represents an endpoint by which requests are received
+             and responses are returned. Documentation at :
+             Java HTTP Connector: /docs/config/http.html (blocking & non-blocking)
+             Java AJP  Connector: /docs/config/ajp.html
+             APR (HTTP/AJP) Connector: /docs/apr.html
+             Define a non-SSL HTTP/1.1 Connector on port 8080
+        -->
+        <Connector port="8080" protocol="HTTP/1.1"
+                   connectionTimeout="20000"
+                   redirectPort="8443"/>
+        <!-- A "Connector" using the shared thread pool-->
+        <!--
+        <Connector executor="tomcatThreadPool"
+                   port="8080" protocol="HTTP/1.1"
+                   connectionTimeout="20000"
+                   redirectPort="8443" />
+        -->
+        <!-- Define a SSL HTTP/1.1 Connector on port 8443
+             This connector uses the BIO implementation that requires the JSSE
+             style configuration. When using the APR/native implementation, the
+             OpenSSL style configuration is required as described in the APR/native
+             documentation -->
+        <!--
+        <Connector port="8443" protocol="org.apache.coyote.http11.Http11Protocol"
+                   maxThreads="150" SSLEnabled="true" scheme="https" secure="true"
+                   clientAuth="false" sslProtocol="TLS" />
+        -->
+
+        <!-- Define an AJP 1.3 Connector on port 8009 -->
+        <Connector port="8009" protocol="AJP/1.3" redirectPort="8443"/>
+
+
+        <!-- An Engine represents the entry point (within Catalina) that processes
+             every request.  The Engine implementation for Tomcat stand alone
+             analyzes the HTTP headers included with the request, and passes them
+             on to the appropriate Host (virtual host).
+             Documentation at /docs/config/engine.html -->
+
+        <!-- You should set jvmRoute to support load-balancing via AJP ie :
+        <Engine name="Catalina" defaultHost="localhost" jvmRoute="jvm1">
+        -->
+        <Engine name="Catalina" defaultHost="localhost">
+
+            <!--For clustering, please take a look at documentation at:
+                /docs/cluster-howto.html  (simple how to)
+                /docs/config/cluster.html (reference documentation) -->
+            <!--
+            <Cluster className="org.apache.catalina.ha.tcp.SimpleTcpCluster"/>
+            -->
+
+            <!-- Use the LockOutRealm to prevent attempts to guess user passwords
+                 via a brute-force attack -->
+            <!-- 用户权限 密码 -->
+            <Realm className="org.apache.catalina.realm.LockOutRealm">
+                <!-- This Realm uses the UserDatabase configured in the global JNDI
+                     resources under the key "UserDatabase".  Any edits
+                     that are performed against this UserDatabase are immediately
+                     available for use by the Realm.  -->
+                <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
+                       resourceName="UserDatabase"/>
+            </Realm>
+            <!-- 虚拟主机 -->
+            <Host name="localhost" appBase="webapps"
+                  unpackWARs="true" autoDeploy="true">
+
+                <!-- SingleSignOn valve, share authentication between web applications
+                     Documentation at: /docs/config/valve.html -->
+                <!--
+                <Valve className="org.apache.catalina.authenticator.SingleSignOn" />
+                -->
+
+                <!-- Access log processes all example.
+                     Documentation at: /docs/config/valve.html
+                     Note: The pattern used is equivalent to using pattern="common" -->
+
+                <!--
+                （1）className：规定了Valve的类型，是最重要的属性；本例中，通过该属性规定了这是一个AccessLogValve。
+                （2）directory：指定日志存储的位置，本例中，日志存储在$TOMCAT_HOME/logs目录下。
+                （3）prefix：指定了日志文件的前缀。
+                （4）suffix：指定了日志文件的后缀。
+                    通过directory、prefix和suffix的配置，在$TOMCAT_HOME/logs目录下。
+                （5）pattern：指定记录日志的格式，本例中各项的含义如下：
+                    %h：远程主机名或IP地址；如果有nginx等反向代理服务器进行请求分发，该主机名/IP地址代表的是nginx，否则代表的是客户端。
+                    %l：远程逻辑用户名，一律是”-”，可以忽略。
+                    %u：授权的远程用户名，如果没有，则是”-”。
+                    %t：访问的时间。
+                    %r：请求的第一行，即请求方法(get/post等)、uri、及协议。
+                    %s：响应状态，200,404等等。
+                    %b：响应的数据量，不包括请求头，如果为0，则是””-。
+                -->
+                <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
+                       prefix="localhost_access_log." suffix=".txt"
+                       pattern="%h %l %u %t &quot;%r&quot; %s %b"/>
+
+            </Host>
+        </Engine>
+    </Service>
+
+
+</Server>
